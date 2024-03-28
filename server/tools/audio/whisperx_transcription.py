@@ -28,9 +28,7 @@ def transcribe_audio(
     if HF_TOKEN is None:
         raise Exception("Must set HUGGINGFACE_API_KEY in .env file")
     # 1. Transcribe with original whisper (batched)
-    model = whisperx.load_model("medium", device, compute_type=compute_type)
-
-
+    model = whisperx.load_model("distil-small.en", device, compute_type=compute_type)
 
     print("Transcribing audio...")
     transcribe_start_time = time.time()
@@ -141,7 +139,7 @@ def create_transcript(audio_file, diarization=False, min_speakers=1, max_speaker
     transcript_list = transcribe_audio_file(audio_file, diarization=diarization, min_speakers=min_speakers, max_speakers=max_speakers)
     transcript = create_transcription_text(transcript_list)
     sample_list = transcript_list[:10]
-    # @TODO: improve prompt for Hermes 2.5
+    # @TODO: improve prompt for Hermes 2
     # suggested_speakers = infer_speakers('\n\n'.join(sample_list))
     return transcript, []
 
