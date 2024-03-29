@@ -18,11 +18,13 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip install --no-cache-dir setuptools-rust \
     && pip install --no-cache-dir git+https://github.com/m-bain/whisperx.git \
-    && pip install --no-cache-dir -U openai-whisper \
-    && pip install --no-cache-dir flask flask_socketio \
-    && pip install --no-cache-dir langchain-experimental langchain-community langchain langchain-openai \
-    && pip install --no-cache-dir pytube \
-    && pip install --no-cache-dir python-dotenv
+    && pip install --no-cache-dir -U openai-whisper==20231117 \
+    && pip install --no-cache-dir Flask==3.0.2 \
+    && pip install --no-cache-dir Flask-SocketIO==5.3.6 \
+    && pip install --no-cache-dir langchain-experimental==0.0.55 langchain-community==0.0.29 langchain==0.1.13 langchain-openai==0.1.1 \
+    && pip install --no-cache-dir pytube==15.0.0 \
+    && pip install --no-cache-dir python-dotenv==1.0.1
+
 
 # Copy the necessary directories and files into the container
 COPY transcription.py /app/transcription.py
