@@ -4,8 +4,6 @@ services:
   transcription-service:
     image: transcription-service
     network_mode: 'host'
-    ports:
-      - '5051:5051'
     volumes:
       - /home/josh/dev/acai.so/server/.env:/app/.env
     deploy:
@@ -19,8 +17,6 @@ services:
   acai:
     image: acai
     network_mode: 'host'
-    ports:
-      - '5050:5050'
     volumes:
       - /home/josh/dev/acai.so/server/.env:/app/.env
     deploy:
