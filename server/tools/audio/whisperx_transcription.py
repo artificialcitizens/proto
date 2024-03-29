@@ -24,11 +24,13 @@ def transcribe_audio(
     transcribe_function_start_time = time.time()
     load_dotenv()
 
+    WHISPER_MODEL = os.getenv("WHISPER_MODEL", "distil-medium.en")
+
     HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
     if HF_TOKEN is None:
         raise Exception("Must set HUGGINGFACE_API_KEY in .env file")
     # 1. Transcribe with original whisper (batched)
-    model = whisperx.load_model("distil-small.en", device, compute_type=compute_type)
+    model = whisperx.load_model(WHISPER_MODEL, device, compute_type=compute_type)
 
     print("Transcribing audio...")
     transcribe_start_time = time.time()
