@@ -154,6 +154,50 @@ curl  -X POST \
 
 ## Transcription
 
+### Setup
+
+#### Manual
+
+`conda create -n whisperx python=3.10`
+
+`conda activate whisperx`
+
+`conda install pytorch==2.0.0 torchaudio==2.0.0 pytorch-cuda=11.8 -c pytorch -c nvidia`
+
+`sudo apt update && sudo apt install ffmpeg`
+
+`pip install setuptools-rust`
+
+`pip install git+https://github.com/m-bain/whisperx.git`
+
+`pip install -U openai-whisper`
+
+`pip install flask flask_socketio`
+
+`pip install langchain-experimental langchain-community langchain langchain-openai`
+
+`pip install pytube`
+
+`pip install python-dotenv`
+
+`python transcription.py`
+
+#### Docker
+
+`docker build -t transcription-service .`
+
+`docker run --gpus all -p 5051:5051 transcription-service`
+
+Set the path to the .env file for the docker container using env.example as a reference.
+
+`docker run --env-file /path/to/acai.so/server/.env -it --gpus all -p 5051:5051 transcription-service`
+
+## Speaker Diarization
+
+If you want to use speaker diariazation you need to provide your HuggingFace API key and visit the models pages to enable the models to be downloaded
+
+More info [here](https://github.com/m-bain/whisperX?tab=readme-ov-file#speaker-diarization)
+
 ---
 
 **Endpoint:** `/transcribe`
@@ -179,18 +223,18 @@ curl  -X POST \
 **Example Request:**
 
 ```bash
-curl -X POST -F "file=@audio.wav" -F "quickTranscribe=true" http://localhost:5000/transcribe
+curl -X POST -F "file=@audio.wav" -F "quickTranscribe=true" http://localhost:5051/transcribe
 ```
 
 ```bash
 curl  -X POST \
-  'http://127.0.0.1:5050/transcribe' \
+  'http://127.0.0.1:5051/transcribe' \
   --header 'Accept: */*' \
   --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
   --form 'url="https://www.youtube.com/watch?v=12jdFZrh8j4"' \
-  --form 'quickTranscribe="True"' \
+  --form 'quickTranscribe="False"' \
   --form 'diarization="True"' \
-  --form 'minSpeakers="3"' \
+  --form 'minSpeakers="1"' \
   --form 'maxSpeakers="3"'
 ```
 
