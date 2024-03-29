@@ -83,15 +83,21 @@ def quick_transcription_flow(filepath, filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
 def full_transcription_flow(request, filepath, filename):
-    diarization_str = request.form.get('diarization', 'true').lower()  # Fetch as lowercase string
-    diarization = diarization_str != 'false'  # Convert to boolean, false only if explicitly 'false'
+    diarization_str = request.form.get('diarization', 'true').lower()
+    diarization = diarization_str != 'false'
     min_speakers = request.form.get('minSpeakers', 1)
     max_speakers = request.form.get('maxSpeakers', 3)
     file_name = request.form.get('url', filename)
     transcript, suggested_speakers = create_transcript(audio_file=filepath, diarization=diarization, min_speakers=int(min_speakers), max_speakers=int(max_speakers))
-    title, lite_summary, summary = create_title_and_summary(text=transcript)
-    return jsonify({"title": title, "lite_summary": lite_summary, "summary": summary, "transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name}), 200
+    
+    if OPENAI_API_KEY:
+        title, lite_summary, summary = create_title_and_summary(text=transcript)
+        return jsonify({"title": title, "lite_summary": lite_summary, "summary": summary, "transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name}), 200
+
+    return jsonify({"transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name, "summary": "", "lite_summary": "", "title": "To use the title and summary you need to sign up for OpenAI and provide your API key in the .env file"}), 200
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5051, allow_unsafe_werkzeug=True)
