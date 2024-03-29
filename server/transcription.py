@@ -72,14 +72,15 @@ def save_file(file, filename):
 
 def process_transcription(request, filepath, filename):
     if 'quickTranscribe' in request.form:
-        return quick_transcription_flow(filepath, filename)
+        return quick_transcription_flow(request, filepath, filename)
     else:
         return full_transcription_flow(request, filepath, filename)
 
-def quick_transcription_flow(filepath, filename):
+def quick_transcription_flow(request, filepath, filename):
+    url = request.form.get('url', filename)
     try:
         transcript = quick_transcribe(audio_file=filepath)
-        return jsonify({"transcript": transcript, "src": filename}), 200
+        return jsonify({"transcript": transcript, "src": url}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
