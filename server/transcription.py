@@ -84,13 +84,14 @@ def quick_transcription_flow(filepath, filename):
         return jsonify({"error": str(e)}), 500
 
 def full_transcription_flow(request, filepath, filename):
-    diarization = request.form.get('diarization', True)
+    diarization_str = request.form.get('diarization', 'true').lower()  # Fetch as lowercase string
+    diarization = diarization_str != 'false'  # Convert to boolean, false only if explicitly 'false'
     min_speakers = request.form.get('minSpeakers', 1)
     max_speakers = request.form.get('maxSpeakers', 3)
     file_name = request.form.get('url', filename)
     transcript, suggested_speakers = create_transcript(audio_file=filepath, diarization=diarization, min_speakers=int(min_speakers), max_speakers=int(max_speakers))
     title, lite_summary, summary = create_title_and_summary(text=transcript)
-    return jsonify({"title": title, "lite_summary": lite_summary, "summary": summary, "transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name}), 200 
+    return jsonify({"title": title, "lite_summary": lite_summary, "summary": summary, "transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name}), 200
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5051, allow_unsafe_werkzeug=True)
