@@ -105,7 +105,7 @@ def human_in_the_loop(content: str) -> str:
     response_received.clear()
     socketio.emit("human-in-the-loop", {"question": f'{content}'})
 
-    # Wait for the event or timeout after 10 seconds
+    # Wait for the event or timeout after 15 seconds
     response_received.wait(timeout=15)
 
     if not response_received.is_set():
