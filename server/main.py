@@ -154,9 +154,6 @@ def get_request(url: str) -> str:
     except Exception as error:
         return jsonify({"error": str(error)}), 500
 
-# test get request
-print(get_request("https://www.accuweather.com/en/us/portland/97209/weather-forecast/350473"))
-
 @tool
 def python_repl_tool(content: str) -> str:
     """A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`."""
