@@ -18,9 +18,7 @@
 
 `pip install -U openai-whisper`
 
-`pip install flask flask_socketio`
-
-`pip install langchain-experimental langchain-community langchain langchain-openai`
+`pip install flask`
 
 `pip install pytube`
 
@@ -42,10 +40,6 @@ If you want to use speaker diariazation you need to provide your HuggingFace API
 
 More info [here](https://github.com/m-bain/whisperX?tab=readme-ov-file#speaker-diarization)
 
-## Title and Summary
-
-If an OpenAI API key is provided the endpoint will return a title and summary of the transcription. You can change the Open AI baseURl and model in the .env file, see the example .env file
-
 ---
 
 **Endpoint:** `/transcribe`
@@ -58,7 +52,6 @@ If an OpenAI API key is provided the endpoint will return a title and summary of
 
 - `file`: An audio file to be transcribed. This should be included in the request's files.
 - `url`: A URL pointing to an audio file or YouTube video to be transcribed. This should be included in the request's form data.
-- `quickTranscribe`: A boolean indicating whether to perform a quick transcription. This should be included in the request's form data.
 - `diarization`: A boolean indicating whether to perform speaker diarization. This should be included in the request's form data.
 - `minSpeakers`: The minimum number of speakers to consider during diarization. This should be included in the request's form data.
 - `maxSpeakers`: The maximum number of speakers to consider during diarization. This should be included in the request's form data.
@@ -71,7 +64,7 @@ If an OpenAI API key is provided the endpoint will return a title and summary of
 **Example Request:**
 
 ```bash
-curl -X POST -F "file=@audio.wav" -F "quickTranscribe=true" http://localhost:5051/transcribe
+curl -X POST -F "file=@audio.wav" http://localhost:5051/transcribe
 ```
 
 ```bash
@@ -79,7 +72,6 @@ curl  -X POST \
   'http://127.0.0.1:5051/transcribe' \
   --header 'Accept: */*' \
   --form 'url="https://www.youtube.com/watch?v=12jdFZrh8j4"' \
-  --form 'quickTranscribe="False"' \
   --form 'diarization="True"' \
   --form 'minSpeakers="1"' \
   --form 'maxSpeakers="3"'
@@ -89,11 +81,7 @@ curl  -X POST \
 
 ```json
 {
-  "title": "Transcription Title",
-  "lite_summary": "Lite Summary",
-  "summary": "Summary",
   "transcript": "Transcription",
-  "suggested_speakers": ["Speaker 1", "Speaker 2"],
   "src": "audio.wav"
 }
 ```
@@ -110,5 +98,4 @@ curl  -X POST \
 
 - The `file` and `url` parameters are mutually exclusive. If both are provided, the `file` parameter will be used.
 - If the `quickTranscribe` parameter is set to `true`, the endpoint will return a quick transcription without performing speaker diarization or generating a title and summary.
-- The `diarization`, `minSpeakers`, and `maxSpeakers` parameters are only used if the `quickTranscribe` parameter is not set to `true`.
 - The endpoint supports `.wav`, `.mp3`, `.flac`, `.aac`, `.ogg`, and `.m4a` audio files, as well as YouTube videos.

@@ -137,19 +137,13 @@ def quick_transcribe(audio_file):
     # combined_text = ' '.join([segment['text'] for segment in segments])
     return segments[0]
 
-from chains.speaker_inference import infer_speakers
-
-def create_transcript(audio_file, diarization=False, min_speakers=1, max_speakers=3):
+def create_transcript(audio_file, min_speakers=1, max_speakers=3):
     '''Create a transcript from an audio file'''
-    transcript_list = transcribe_audio_file(audio_file, diarization=diarization, min_speakers=min_speakers, max_speakers=max_speakers)
+    transcript_list = transcribe_audio_file(audio_file, diarization=True, min_speakers=min_speakers, max_speakers=max_speakers)
     transcript = create_transcription_text(transcript_list)
-    sample_list = transcript_list[:10]
-    # @TODO: improve prompt for Hermes 2
-    # suggested_speakers = infer_speakers('\n\n'.join(sample_list))
-    return transcript, []
+    return transcript
 
 if __name__ == "__main__":
-    from chains.speaker_inference import infer_speakers
 
     audio_file="/home/josh/dev/acai.so/server/tools/audio/example.wav"
     output_dir = './data/files/test'
@@ -160,7 +154,6 @@ if __name__ == "__main__":
     # For testing if llm can infer names for speakers
     sample_list = transcript_list[:10]
     print('Infering speakers for sample list')
-    print(infer_speakers('\n\n'.join(sample_list)))
     
     
     # Create directory if it doesn't exist
