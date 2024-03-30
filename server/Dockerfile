@@ -28,13 +28,15 @@ RUN pip install --no-cache-dir flask_cors \
     && pip install --no-cache-dir duckduckgo-search \
     && pip install --no-cache-dir google-api-python-client>=2.100.0
 
-RUN pip install --no-cache-dir crewai 'crewai[tools]'
+RUN pip install --no-cache-dir bs4 \
+    && pip install --no-cache-dir instructor
 
 # Copy the necessary directories and files into the container
 COPY main.py /app/main.py
 COPY tools /app/tools
 COPY chains /app/chains
 COPY models /app/models
+COPY crewai /app/crewai
 COPY ac_crew/create_crew.py /app/ac_crew/create_crew.py
 COPY agents/custom_agent.py /app/agents/custom_agent.py
 
