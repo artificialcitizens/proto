@@ -151,3 +151,29 @@ curl  -X POST \
 ```
 
 </details>
+
+## Tools
+
+## Google Search
+
+<details>
+<summary>Google Search Params</summary>
+
+The possible params options for the GoogleSearchAPIWrapper class's results method are essentially the parameters that can be passed to the Google Custom Search JSON API. These parameters allow you to customize your search query. Here are some of the commonly used parameters:
+q: The search query string.
+num: Number of search results to return (valid values are integers between 1 and 10, inclusive).
+start: The index of the first result to return (for pagination).
+lr: Language restrict. Restricts the search to documents written in a particular language (e.g., lang_en for English).
+safe: Search safety level (e.g., off, medium, high).
+cx: The custom search engine ID to use for this request.
+exactTerms: Identifies a phrase that all documents in the search results must contain.
+excludeTerms: Identifies a word or phrase that should not appear in any documents in the search results.
+fileType: Restricts results to files of a specified extension.
+gl: Geolocation of end user.
+hl: The interface language (host language) of your user interface.
+siteSearch: Specifies all search results should be pages from a given site.
+siteSearchFilter: Controls whether to include or exclude results from the site named in the siteSearch parameter.
+These parameters are passed as a dictionary to the search_params argument of the results method. For example:
+This is not an exhaustive list, and the parameters can change as Google updates its API. For the most current and comprehensive list of parameters, refer to the official documentation of the Google Custom Search JSON API.
+
+</details>

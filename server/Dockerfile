@@ -25,7 +25,10 @@ RUN pip install --no-cache-dir setuptools-rust \
     && pip install --no-cache-dir python-dotenv==1.0.1
 
 RUN pip install --no-cache-dir flask_cors \
-    && pip install --no-cache-dir duckduckgo-search
+    && pip install --no-cache-dir duckduckgo-search \
+    && pip install --no-cache-dir google-api-python-client>=2.100.0
+
+RUN pip install --no-cache-dir crewai 'crewai[tools]'
 
 # Copy the necessary directories and files into the container
 COPY main.py /app/main.py

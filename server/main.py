@@ -8,6 +8,9 @@ from flask_cors import CORS
 from flask import Flask, request
 # from werkzeug.utils import secure_filename
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
@@ -46,6 +49,24 @@ from langchain.tools import BaseTool, StructuredTool, tool
 from langchain.agents import load_tools, Tool
 from langchain_experimental.utilities import PythonREPL
 from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.utilities import GoogleSearchAPIWrapper
+
+google_api_key = os.getenv("GOOGLE_API_KEY")
+google_cse_id = os.getenv("GOOGLE_CSE_ID")
+
+google_search = GoogleSearchAPIWrapper(
+    google_api_key=google_api_key,
+    google_cse_id=google_cse_id
+)
+
+google_search_tool = Tool(
+    name="google_search",
+    description="Search Google for recent results.",
+    func=google_search.run,
+)
+
+def google_results(query: str, num_results: int, search_params: dict) -> str:
+    return google_search.results(query, num_results, search_params)
 
 # from tools.summarization.summary_and_title import create_title_and_summary
 from tools.loaders.github import load_github_trending
@@ -131,8 +152,9 @@ def python_repl_tool(content: str) -> str:
     return python_repl.run(content)
 
 
+
 tool_mapping = {
-    "DuckDuckGoSearch": DuckDuckGoSearchRun(),
+    "GoogleSearch": google_search_tool,
     "Requests": get_request,
     "CreateDoc": create_doc,
     "HumanInTheLoop": human_in_the_loop,
@@ -143,7 +165,7 @@ tool_mapping = {
 }
 
 from models.crew_config import model_mapping
-# from crew.create_crew import create_crew_from_config
+from ac_crew.create_crew import create_crew_from_config
 
 @app.route("/tools", methods=["GET"])
 def tools():
@@ -157,22 +179,22 @@ def models():
     response = list(model_mapping.keys())
     return jsonify({"response": response}), 200
 
-# @app.route("/run-crew", methods=["POST"])
-# def create_crew():
-#     try:
-#         payload = request.get_json()
-#         config_string = json.dumps(payload)
-#         print('config string -------------------')
-#         print(config_string)
-#         crew = create_crew_from_config(config_string, tool_mapping, socketio)
-#         print('crew created')
-#         response = crew.kickoff()
-#         # output = capture_output()
-#         # print(output)
-#         return jsonify({"response": response, "status": "success"}), 200
-#     except Exception as e:
-#         print(e)
-#         return jsonify({"status": "error", "message": str(e)}), 500
+@app.route("/run-crew", methods=["POST"])
+def create_crew():
+    try:
+        payload = request.get_json()
+        config_string = json.dumps(payload)
+        print('config string -------------------')
+        print(config_string)
+        crew = create_crew_from_config(config_string, tool_mapping, socketio)
+        print('crew created')
+        response = crew.kickoff()
+        # output = capture_output()
+        # print(output)
+        return jsonify({"response": response, "status": "success"}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # Forwards the request to input URL and returns the response
 @app.route("/proxy", methods=["GET"])
@@ -183,107 +205,75 @@ def proxy():
         return response.text
     except Exception as error:
         return jsonify({"error": str(error)}), 500
+    
+@app.route("/search", methods=["GET"])
+def google_search():
+    """
+Perform a Google search using the provided query and optional parameters.
+
+Query Parameters:
+- q (required): The search query string.
+- num (optional): The number of search results to return (default: 10, max: 10).
+- lr (optional): Language restrict (e.g., 'lang_en' for English).
+- safe (optional): Search safety level (e.g., 'off', 'medium', 'high').
+- exactTerms (optional): Phrase that all documents in the search results must contain.
+- excludeTerms (optional): Word or phrase that should not appear in any documents in the search results.
+- fileType (optional): Restricts results to files of a specified extension.
+- gl (optional): Geolocation of end user.
+- hl (optional): The interface language (host language) of your user interface.
+- siteSearch (optional): Specifies all search results should be pages from a given site.
+- siteSearchFilter (optional): Controls whether to include or exclude results from the site named in the siteSearch parameter.
+- dateRestrict (optional): Restricts results to a specific date range (e.g., 'd1' for the past 24 hours, 'd2' for the past 48 hours, 'w1' for the past 7 days, 'm1' for the past 30 days, 'y1' for the past year).
+
+Returns:
+- JSON object containing the search results.
+- 200 status code on success.
+- 500 status code on error, with an error message in the JSON response.
+
+Example:
+GET /search?q=Python+programming&num=5&lr=lang_en&safe=high
+
+Response:
+{
+    "results": [
+        {
+            "title": "Python Programming Language",
+            "link": "https://www.python.org/",
+            "snippet": "Python is a programming language that lets you work quickly and integrate systems more effectively."
+        },
+        ...
+    ]
+}
+"""
+    try:
+        query = request.args.get("q")
+        num_results = int(request.args.get("num", 10))
+        
+        search_params = {
+            "lr": request.args.get("lr", ""),
+            "safe": request.args.get("safe", ""),
+            "exactTerms": request.args.get("exactTerms", ""),
+            "excludeTerms": request.args.get("excludeTerms", ""),
+            "fileType": request.args.get("fileType", ""),
+            "gl": request.args.get("gl", ""),
+            "hl": request.args.get("hl", ""),
+            "siteSearch": request.args.get("siteSearch", ""),
+            "siteSearchFilter": request.args.get("siteSearchFilter", ""),
+            "dateRestrict": request.args.get("dateRestrict", "")
+        }
+
+        # strip out any empty search params
+        search_params = {k: v for k, v in search_params.items() if v}
+        print('search params -------------------')
+        print(search_params)
+        results = google_results(query, num_results, search_params)
+        return jsonify({"results": results}), 200
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
 
 @app.route("/test", methods=["GET"])
 def test():
-    # Emitting from within the Flask-SocketIO server
-    socketio.emit('relay_message', {'data': 'hello from the server side!'})
-
     return jsonify({"response": "Hello World!"}), 200
-
-# # Setup embedding engine
-# import asyncio
-# from infinity_emb import AsyncEmbeddingEngine
-
-# from pydantic import BaseModel, Field
-# from typing import List, Optional, Union
-
-# class Embedding(BaseModel):
-#     object: str
-#     embedding: List[float]
-#     index: int
-
-
-# class Usage(BaseModel):
-#     prompt_tokens: int
-#     total_tokens: int
-
-
-# class CreateEmbeddingResponse(BaseModel):
-#     object: str
-#     data: List[Embedding]
-#     model: str
-#     usage: Usage
-
-# # prevents error
-#     # ERROR: Task was destroyed but it is pending!                      base_events.py:1771
-#         #  task: <Task pending name='Task-31' coro=<BatchHandler._delayed_warmup() done, defined at                             
-#         #  /home/josh/miniconda3/envs/thecrew/lib/python3.11/site-packages/infinity_emb/inference/batch_hand                    
-#         #  ler.py:364> wait_for=<Future pending cb=[Task.task_wakeup()]>>  
-#     # but makes the function 4x as slow. Error doesn't seem to affect anything.
-# # def embed_sync(sentences):
-# #     loop = asyncio.new_event_loop()
-# #     asyncio.set_event_loop(loop)
-    
-# #     async def embed():
-# #         async with engine:
-# #             return await engine.embed(sentences=sentences)
-
-# #     result = loop.run_until_complete(embed())
-# #     loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(loop)))
-# #     loop.close()
-# #     return result
-
-# # @TODO: Look into removing from memory when not in use, there is a stop and start method
-# MODEL_NAME = "BAAI/bge-m3"
-# engine = AsyncEmbeddingEngine(model_name_or_path = MODEL_NAME, engine="torch")
-
-# def embed_sync(sentences):
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-    
-#     async def embed():
-#         async with engine:
-#             return await engine.embed(sentences=sentences)
-
-#     return loop.run_until_complete(embed())
-
-
-# @app.route("/v1/embeddings", methods=['POST'])
-# def embeddings():
-#     data = request.json
-#     try:
-#         sentences = data["input"]
-#     except KeyError:
-#         return jsonify(error="Missing 'input' key in JSON payload"), 400
-        
-#     try:
-#         print(sentences)
-#         embeddings, usage = embed_sync(sentences)
-#         from uuid import uuid4
-#         import time
-        
-#         embedding_objects = []
-#         for i, embedding in enumerate(embeddings):
-#             embedding_objects.append(
-#                 Embedding(object="embedding", embedding=embedding.tolist(), index=i)
-#             )
-            
-#         usage_object = Usage(prompt_tokens=0, total_tokens=usage)
-
-#         response = CreateEmbeddingResponse(
-#             object="embedding",
-#             data=embedding_objects,
-#             model=MODEL_NAME,
-#             usage=usage_object,
-#             id=f"infinity-{uuid4()}",
-#             created=int(time.time())
-#         )
-        
-#         return response.dict(), 200
-#     except Exception as ex:
-#         print(ex)
-#         return jsonify(error=f"InternalServerError: {str(ex)}"), 500
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5050, allow_unsafe_werkzeug=True)
