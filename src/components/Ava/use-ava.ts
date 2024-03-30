@@ -219,6 +219,7 @@ export const useAva = (): {
             tools: [],
             files: [],
             metadata: {},
+            expected_output: 'Answer the users query',
           };
 
           const response = await addTaskAndRun({
