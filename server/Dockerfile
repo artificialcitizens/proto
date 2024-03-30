@@ -35,6 +35,8 @@ COPY main.py /app/main.py
 COPY tools /app/tools
 COPY chains /app/chains
 COPY models /app/models
+COPY ac_crew/create_crew.py /app/ac_crew/create_crew.py
+COPY agents/custom_agent.py /app/agents/custom_agent.py
 
 # Make port 5050 available to the world outside this container
 EXPOSE 5050

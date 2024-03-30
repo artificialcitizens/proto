@@ -40,3 +40,9 @@ services:
         reservations:
           devices:
             - capabilities: ['gpu']
+
+  frontend:
+    image: acai-frontend
+    network_mode: 'host'
+    volumes:
+      - /home/josh/dev/acai.so/.env:/app/.env
