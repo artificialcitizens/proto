@@ -45,11 +45,17 @@ def handle_message(message):
 ####################
 # TOOLS
 ####################
+import yaml
+
 from langchain.tools import BaseTool, StructuredTool, tool
 from langchain.agents import load_tools, Tool
 from langchain_experimental.utilities import PythonREPL
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.utilities import GoogleSearchAPIWrapper
+# from tools.summarization.summary_and_title import create_title_and_summary
+from tools.loaders.github import load_github_trending
+from tools.loaders.weather import get_weather
+from tools.loaders.wiki_search import wiki_search
 
 google_api_key = os.getenv("GOOGLE_API_KEY")
 google_cse_id = os.getenv("GOOGLE_CSE_ID")
@@ -59,19 +65,21 @@ google_search = GoogleSearchAPIWrapper(
     google_cse_id=google_cse_id
 )
 
-google_search_tool = Tool(
-    name="google_search",
-    description="Search Google for recent results.",
-    func=google_search.run,
-)
-
 def google_results(query: str, num_results: int, search_params: dict) -> str:
     return google_search.results(query, num_results, search_params)
 
-# from tools.summarization.summary_and_title import create_title_and_summary
-from tools.loaders.github import load_github_trending
-from tools.loaders.weather import get_weather
-from tools.loaders.wiki_search import wiki_search
+
+def parse_search_results(results: dict) -> str:
+    '''
+    Convert search results to a yaml string
+    '''
+    return yaml.dump(results, allow_unicode=True, default_flow_style=False)
+
+@tool
+def agent_google_search(query: str) -> str:
+    """Search Google for recent results."""
+    results = google_results(query, num_results=5, search_params={})
+    return parse_search_results(results)
 
 @tool
 def wiki_search_tool(query: str) -> str:
@@ -135,15 +143,19 @@ def human_in_the_loop(content: str) -> str:
 
     return response_data.get('response', 'No response received')
 
+from tools.web_scraper.bs_scraper import scrape_html
+
 @tool
 def get_request(url: str) -> str:
     """A portal to the internet. Use this when you need to get specific content from a website. Input should be a  url (i.e. https://www.google.com). The output will be the text response of the GET request"""
-    url = request.args.get("url")
     try:
         response = requests.get(url, timeout=5)
-        return response.text
+        return scrape_html(response.text)
     except Exception as error:
         return jsonify({"error": str(error)}), 500
+
+# test get request
+print(get_request("https://www.accuweather.com/en/us/portland/97209/weather-forecast/350473"))
 
 @tool
 def python_repl_tool(content: str) -> str:
@@ -151,10 +163,8 @@ def python_repl_tool(content: str) -> str:
     python_repl = PythonREPL()
     return python_repl.run(content)
 
-
-
 tool_mapping = {
-    "GoogleSearch": google_search_tool,
+    "GoogleSearch": agent_google_search,
     "Requests": get_request,
     "CreateDoc": create_doc,
     "HumanInTheLoop": human_in_the_loop,
