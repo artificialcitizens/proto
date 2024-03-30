@@ -78,13 +78,13 @@ const CrewCard: React.FC<CrewCardProps> = ({
           ) : (
             <CrewAIList crew={crew} />
           )}
-          {/* {crew.example && (
+          {crew.example && (
             <div className="bg-dark rounded-md p-4 mb-2">
               <h2 className="text-acai-white text-sm mb-4">Example Output</h2>
 
               <p className="text-sm">{crew.example}</p>
             </div>
-          )} */}
+          )}
           {/* <h2 className="text-acai-white text-sm mb-4">Logs</h2>
 
           <div className="max-w-full max-h-[25vh] whitespace-pre-line p-2 text-xs overflow-scroll bg-dark rounded-md">

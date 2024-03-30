@@ -52,10 +52,6 @@ class Crew(BaseModel):
     agents: List[Agent] = Field(default_factory=list)
     process: Process = Field(default=Process.sequential)
     verbose: Union[int, bool] = Field(default=0)
-    usage_metrics: Optional[dict] = Field(
-        default=None,
-        description="Metrics for the LLM usage during all tasks execution.",
-    )
     full_output: Optional[bool] = Field(
         default=False,
         description="Whether the crew should return the full output with all tasks outputs or just the final output.",
@@ -187,25 +183,16 @@ class Crew(BaseModel):
                 agent.step_callback = self.step_callback
                 agent.create_agent_executor()
 
-        metrics = []
-
         if self.process == Process.sequential:
             result = self._run_sequential_process()
         elif self.process == Process.hierarchical:
-            result, manager_metrics = self._run_hierarchical_process()
-            metrics.append(manager_metrics)
+            result = self._run_hierarchical_process()
 
         else:
             raise NotImplementedError(
                 f"The process '{self.process}' is not implemented yet."
             )
 
-        metrics = metrics + [
-            agent._token_process.get_summary() for agent in self.agents
-        ]
-        self.usage_metrics = {
-            key: sum([m[key] for m in metrics if m is not None]) for key in metrics[0]
-        }
 
         return result
 

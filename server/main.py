@@ -203,8 +203,6 @@ def create_crew():
     try:
         payload = request.get_json()
         config_string = json.dumps(payload)
-        print('config string -------------------')
-        print(config_string)
         crew = create_crew_from_config(config_string, tool_mapping, socketio)
         print('crew created')
         response = crew.kickoff()

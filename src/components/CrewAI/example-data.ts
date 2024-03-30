@@ -64,6 +64,7 @@ export const exampleData: Crew = {
       agent: 'New Agent',
       tools: [],
       files: [],
+      expected_output: 'bar',
       metadata: {},
     },
   ],

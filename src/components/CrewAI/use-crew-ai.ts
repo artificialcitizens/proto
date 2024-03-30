@@ -52,6 +52,7 @@ export interface Task {
   agent: string;
   tools: string[];
   files: string[]; // probably just do a join table for files
+  expected_output: string;
   metadata: Record<string, string | number | JSON>;
 }
 
@@ -100,6 +101,7 @@ export const newTask = ({
     tools: [],
     files: [],
     metadata: {},
+    expected_output: '',
   };
 };
 
