@@ -182,6 +182,7 @@ export const useCrewAi = () => {
   const saveCrew = async (crew: Crew) => {
     crew.lastUpdated = new Date().toISOString();
     validateCrew(crew);
+    console.log(crew.example);
     try {
       await db.crews.put(crew);
       return crew;
@@ -353,7 +354,7 @@ export const useCrewAi = () => {
   };
 
   const test = async (crewId: string) => {
-    const crew = crews?.filter((crew) => crew.id === crewId)[0];
+    const crew = crews?.find((crew) => crew.id === crewId);
     if (!crew) {
       toastifyError(`Crew ${crewId} not found`);
       return;
@@ -366,12 +367,14 @@ export const useCrewAi = () => {
       console.log(result.response);
       const crewClone = JSON.parse(JSON.stringify(crew));
       crewClone.example = result.response;
+      // Update the crew with the new example
+      crewClone.example = result.response;
+      // Save the updated crew to the database
       await saveCrew(crewClone);
     } catch (e: any) {
       toastifyError(e.message);
     }
   };
-
   /**
    * Adds a task to the beginning|end of the task list
    */
