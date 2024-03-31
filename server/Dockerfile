@@ -31,6 +31,9 @@ RUN pip install --no-cache-dir flask_cors \
 RUN pip install --no-cache-dir bs4 \
     && pip install --no-cache-dir instructor
 
+RUN pip install --no-cache-dir langchain_anthropic \
+    && pip install --no-cache-dir langchain-google-genai pillow
+
 # Copy the necessary directories and files into the container
 COPY main.py /app/main.py
 COPY tools /app/tools
