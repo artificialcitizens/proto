@@ -364,7 +364,7 @@ export const useCrewAi = () => {
       toastifyInfo(`Running Crew ${crew.name}`);
       const result = await runCrewAi(crew);
       setOutput(result.response);
-      console.log(result.response);
+
       const crewClone = JSON.parse(JSON.stringify(crew));
       crewClone.example = result.response;
       // Update the crew with the new example
