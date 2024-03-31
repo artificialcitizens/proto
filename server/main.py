@@ -72,14 +72,14 @@ from tools.loaders.wiki_search import wiki_search
 google_api_key = os.getenv("GOOGLE_API_KEY")
 google_cse_id = os.getenv("GOOGLE_CSE_ID")
 
-google_search = GoogleSearchAPIWrapper(
+search = GoogleSearchAPIWrapper(
     google_api_key=google_api_key,
     google_cse_id=google_cse_id
 )
 
 def google_results(query: str, num_results: int, search_params: dict) -> str:
-    return google_search.results(query, num_results, search_params)
-
+    results = search.results(query, num_results, search_params)
+    return results
 
 def parse_search_results(results: dict) -> str:
     '''
@@ -90,7 +90,7 @@ def parse_search_results(results: dict) -> str:
 @tool
 def agent_google_search(query: str) -> str:
     """Search Google for recent results."""
-    results = google_results(query, num_results=5, search_params={})
+    results = search.results(query, num_results=5, search_params={})
     return parse_search_results(results)
 
 @tool
@@ -283,7 +283,7 @@ Response:
         search_params = {k: v for k, v in search_params.items() if v}
         print('search params -------------------')
         print(search_params)
-        results = google_results(query, num_results, search_params)
+        results = search.results(query, num_results, search_params)
         return jsonify({"results": results}), 200
     except Exception as error:
         return jsonify({"error": str(error)}), 500
