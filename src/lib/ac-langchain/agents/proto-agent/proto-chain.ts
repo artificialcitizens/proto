@@ -27,7 +27,7 @@ export const protoChain = async ({
   if (!model) {
     model = new ChatOpenAI({
       openAIApiKey,
-      modelName: 'gpt-4-turbo-preview',
+      modelName: 'gpt-4o',
     });
   }
 
