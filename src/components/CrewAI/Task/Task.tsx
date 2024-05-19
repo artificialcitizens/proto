@@ -93,6 +93,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, crewId }) => {
               />
             </li>
             <li className="p-2 text-sm font-medium">
+              Expected Output:
+              <TextBox
+                onCancel={() => {
+                  console.log('cancel');
+                }}
+                onSave={(value) => {
+                  if (!value) {
+                    toastifyInfo('Task expected output cannot be empty');
+                    return;
+                  }
+                  updateTaskInCrew(crewId, { ...task, expected_output: value });
+                }}
+                value={task.expected_output}
+              />
+            </li>
+            <li className="p-2 text-sm font-medium">
               Tools:
               <Checkbox
                 options={

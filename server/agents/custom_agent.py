@@ -26,16 +26,18 @@ class ExtendedAgent(Agent):
         """
         output = super().execute_task(task, context, tools)
         tools_string = ", ".join([tool.name for tool in tools]) if tools else ""
+        # Convert task to a serializable format
+        task_representation = task if isinstance(task, str) else str(task.id)  # Convert UUID to string
         task_log = {
             "id": self.crew_id,
             "timestamp": datetime.now().isoformat(),
             "agent": self.role,
-            "task": task,
+            "task": task_representation,  # Use the string representation of the UUID
             "output": output,
             "context": context,
             "tools": tools_string
         }
-      # convert to string
+        # convert to string
         task_log = json.dumps(task_log)
         if self.socketio:
             self.socketio.emit(

@@ -152,72 +152,28 @@ curl  -X POST \
 
 </details>
 
-## Transcription
+## Tools
 
----
+## Google Search
 
-**Endpoint:** `/transcribe`
+<details>
+<summary>Google Search Params</summary>
 
-**Method:** `POST`
+The possible params options for the GoogleSearchAPIWrapper class's results method are essentially the parameters that can be passed to the Google Custom Search JSON API. These parameters allow you to customize your search query. Here are some of the commonly used parameters:
+q: The search query string.
+num: Number of search results to return (valid values are integers between 1 and 10, inclusive).
+start: The index of the first result to return (for pagination).
+lr: Language restrict. Restricts the search to documents written in a particular language (e.g., lang_en for English).
+safe: Search safety level (e.g., off, medium, high).
+cx: The custom search engine ID to use for this request.
+exactTerms: Identifies a phrase that all documents in the search results must contain.
+excludeTerms: Identifies a word or phrase that should not appear in any documents in the search results.
+fileType: Restricts results to files of a specified extension.
+gl: Geolocation of end user.
+hl: The interface language (host language) of your user interface.
+siteSearch: Specifies all search results should be pages from a given site.
+siteSearchFilter: Controls whether to include or exclude results from the site named in the siteSearch parameter.
+These parameters are passed as a dictionary to the search_params argument of the results method. For example:
+This is not an exhaustive list, and the parameters can change as Google updates its API. For the most current and comprehensive list of parameters, refer to the official documentation of the Google Custom Search JSON API.
 
-**Description:** This endpoint is used to transcribe audio files. It accepts either a file upload or a URL pointing to an audio file or YouTube video.
-
-**Request Parameters:**
-
-- `file`: An audio file to be transcribed. This should be included in the request's files.
-- `url`: A URL pointing to an audio file or YouTube video to be transcribed. This should be included in the request's form data.
-- `quickTranscribe`: A boolean indicating whether to perform a quick transcription. This should be included in the request's form data.
-- `diarization`: A boolean indicating whether to perform speaker diarization. This should be included in the request's form data.
-- `minSpeakers`: The minimum number of speakers to consider during diarization. This should be included in the request's form data.
-- `maxSpeakers`: The maximum number of speakers to consider during diarization. This should be included in the request's form data.
-
-**Response:**
-
-- If the transcription is successful, the endpoint returns a JSON object containing the transcription, title, summary, lite summary, suggested speakers, and source file name.
-- If an error occurs, the endpoint returns a JSON object containing an error message.
-
-**Example Request:**
-
-```bash
-curl -X POST -F "file=@audio.wav" -F "quickTranscribe=true" http://localhost:5000/transcribe
-```
-
-```bash
-curl  -X POST \
-  'http://127.0.0.1:5050/transcribe' \
-  --header 'Accept: */*' \
-  --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
-  --form 'url="https://www.youtube.com/watch?v=12jdFZrh8j4"' \
-  --form 'quickTranscribe="True"' \
-  --form 'diarization="True"' \
-  --form 'minSpeakers="3"' \
-  --form 'maxSpeakers="3"'
-```
-
-**Example Response:**
-
-```json
-{
-  "title": "Transcription Title",
-  "lite_summary": "Lite Summary",
-  "summary": "Summary",
-  "transcript": "Transcription",
-  "suggested_speakers": "2",
-  "src": "audio.wav"
-}
-```
-
-**Error Response:**
-
-```json
-{
-  "error": "No file or URL provided"
-}
-```
-
-**Notes:**
-
-- The `file` and `url` parameters are mutually exclusive. If both are provided, the `file` parameter will be used.
-- If the `quickTranscribe` parameter is set to `true`, the endpoint will return a quick transcription without performing speaker diarization or generating a title and summary.
-- The `diarization`, `minSpeakers`, and `maxSpeakers` parameters are only used if the `quickTranscribe` parameter is not set to `true`.
-- The endpoint supports `.wav`, `.mp3`, `.flac`, `.aac`, `.ogg`, and `.m4a` audio files, as well as YouTube videos.
+</details>

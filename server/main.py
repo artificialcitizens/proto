@@ -3,11 +3,14 @@ import requests
 import json
 
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask import Flask, request
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
@@ -18,8 +21,14 @@ CORS(
         "http://192.168.4.74:5173", 
         "http://localhost:5173", 
         "http://www.acai.so",
-        "http://192.168.4.195:5173", # Add this line
-        "http://192.168.4.192:5173"  # Add this line
+        "http://192.168.4.195:5173",
+        "http://192.168.4.192:5173" 
+        "http://192.168.4.74:4173", 
+        "http://localhost:4173", 
+        "http://www.acai.so",
+        "http://192.168.4.195:4173",
+        "http://192.168.4.192:4173" 
+        "http://172.23.0.3:4173"
     ],
 )
 
@@ -31,24 +40,58 @@ socketio = SocketIO(
         "https://www.acai.so",
         "http://192.168.4.195:5173",
         "http://192.168.4.192:5173"
+        "http://192.168.4.74:4173",  
+        "http://localhost:4173",
+        "https://www.acai.so",
+        "http://192.168.4.195:4173",
+        "http://192.168.4.192:4173"
+        "http://172.23.0.3:4173"
     ],
 )
+
+@socketio.on('flask_server_message')
+def handle_message(message):
+    print('Received message: ' + message)
+    socketio.emit('relay_message', {'data': message})
 
 ####################
 # TOOLS
 ####################
+import yaml
+
 from langchain.tools import BaseTool, StructuredTool, tool
 from langchain.agents import load_tools, Tool
 from langchain_experimental.utilities import PythonREPL
 from langchain_community.tools import DuckDuckGoSearchRun
-
-from tools.summarization.summary_and_title import create_title_and_summary
+from langchain_community.utilities import GoogleSearchAPIWrapper
+# from tools.summarization.summary_and_title import create_title_and_summary
 from tools.loaders.github import load_github_trending
 from tools.loaders.weather import get_weather
 from tools.loaders.wiki_search import wiki_search
-from tools.loaders.youtube_ripper import rip_youtube
 
-from tools.audio.whisperx_transcription import create_transcript, quick_transcribe
+google_api_key = os.getenv("GOOGLE_API_KEY")
+google_cse_id = os.getenv("GOOGLE_CSE_ID")
+
+search = GoogleSearchAPIWrapper(
+    google_api_key=google_api_key,
+    google_cse_id=google_cse_id
+)
+
+def google_results(query: str, num_results: int, search_params: dict) -> str:
+    results = search.results(query, num_results, search_params)
+    return results
+
+def parse_search_results(results: dict) -> str:
+    '''
+    Convert search results to a yaml string
+    '''
+    return yaml.dump(results, allow_unicode=True, default_flow_style=False)
+
+@tool
+def agent_google_search(query: str) -> str:
+    """Search Google for recent results."""
+    results = search.results(query, num_results=5, search_params={})
+    return parse_search_results(results)
 
 @tool
 def wiki_search_tool(query: str) -> str:
@@ -103,7 +146,7 @@ def human_in_the_loop(content: str) -> str:
     response_received.clear()
     socketio.emit("human-in-the-loop", {"question": f'{content}'})
 
-    # Wait for the event or timeout after 10 seconds
+    # Wait for the event or timeout after 15 seconds
     response_received.wait(timeout=15)
 
     if not response_received.is_set():
@@ -112,13 +155,14 @@ def human_in_the_loop(content: str) -> str:
 
     return response_data.get('response', 'No response received')
 
+from tools.web_scraper.bs_scraper import scrape_html
+
 @tool
 def get_request(url: str) -> str:
     """A portal to the internet. Use this when you need to get specific content from a website. Input should be a  url (i.e. https://www.google.com). The output will be the text response of the GET request"""
-    url = request.args.get("url")
     try:
         response = requests.get(url, timeout=5)
-        return response.text
+        return scrape_html(response.text)
     except Exception as error:
         return jsonify({"error": str(error)}), 500
 
@@ -128,9 +172,8 @@ def python_repl_tool(content: str) -> str:
     python_repl = PythonREPL()
     return python_repl.run(content)
 
-
 tool_mapping = {
-    "DuckDuckGoSearch": DuckDuckGoSearchRun(),
+    "GoogleSearch": agent_google_search,
     "Requests": get_request,
     "CreateDoc": create_doc,
     "HumanInTheLoop": human_in_the_loop,
@@ -141,7 +184,7 @@ tool_mapping = {
 }
 
 from models.crew_config import model_mapping
-from crew.create_crew import create_crew_from_config
+from ac_crew.create_crew import create_crew_from_config
 
 @app.route("/tools", methods=["GET"])
 def tools():
@@ -160,8 +203,6 @@ def create_crew():
     try:
         payload = request.get_json()
         config_string = json.dumps(payload)
-        print('config string -------------------')
-        print(config_string)
         crew = create_crew_from_config(config_string, tool_mapping, socketio)
         print('crew created')
         response = crew.kickoff()
@@ -181,203 +222,75 @@ def proxy():
         return response.text
     except Exception as error:
         return jsonify({"error": str(error)}), 500
+    
+@app.route("/search", methods=["GET"])
+def google_search():
+    """
+Perform a Google search using the provided query and optional parameters.
+
+Query Parameters:
+- q (required): The search query string.
+- num (optional): The number of search results to return (default: 10, max: 10).
+- lr (optional): Language restrict (e.g., 'lang_en' for English).
+- safe (optional): Search safety level (e.g., 'off', 'medium', 'high').
+- exactTerms (optional): Phrase that all documents in the search results must contain.
+- excludeTerms (optional): Word or phrase that should not appear in any documents in the search results.
+- fileType (optional): Restricts results to files of a specified extension.
+- gl (optional): Geolocation of end user.
+- hl (optional): The interface language (host language) of your user interface.
+- siteSearch (optional): Specifies all search results should be pages from a given site.
+- siteSearchFilter (optional): Controls whether to include or exclude results from the site named in the siteSearch parameter.
+- dateRestrict (optional): Restricts results to a specific date range (e.g., 'd1' for the past 24 hours, 'd2' for the past 48 hours, 'w1' for the past 7 days, 'm1' for the past 30 days, 'y1' for the past year).
+
+Returns:
+- JSON object containing the search results.
+- 200 status code on success.
+- 500 status code on error, with an error message in the JSON response.
+
+Example:
+GET /search?q=Python+programming&num=5&lr=lang_en&safe=high
+
+Response:
+{
+    "results": [
+        {
+            "title": "Python Programming Language",
+            "link": "https://www.python.org/",
+            "snippet": "Python is a programming language that lets you work quickly and integrate systems more effectively."
+        },
+        ...
+    ]
+}
+"""
+    try:
+        query = request.args.get("q")
+        num_results = int(request.args.get("num", 10))
+        
+        search_params = {
+            "lr": request.args.get("lr", ""),
+            "safe": request.args.get("safe", ""),
+            "exactTerms": request.args.get("exactTerms", ""),
+            "excludeTerms": request.args.get("excludeTerms", ""),
+            "fileType": request.args.get("fileType", ""),
+            "gl": request.args.get("gl", ""),
+            "hl": request.args.get("hl", ""),
+            "siteSearch": request.args.get("siteSearch", ""),
+            "siteSearchFilter": request.args.get("siteSearchFilter", ""),
+            "dateRestrict": request.args.get("dateRestrict", "")
+        }
+
+        # strip out any empty search params
+        search_params = {k: v for k, v in search_params.items() if v}
+        print('search params -------------------')
+        print(search_params)
+        results = search.results(query, num_results, search_params)
+        return jsonify({"results": results}), 200
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
 
 @app.route("/test", methods=["GET"])
 def test():
     return jsonify({"response": "Hello World!"}), 200
-
-from urllib.parse import urlparse
-
-def allowed_file(filename):
-    ALLOWED_EXTENSIONS = set(['wav', 'mp3', 'flac', 'aac', 'ogg', 'm4a', 'mp4'])
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/transcribe', methods=['POST'])
-def transcribe():
-    file = None
-    if 'file' in request.files:
-        file = request.files['file']
-    elif 'url' in request.form:
-        url = request.form['url']
-        parsed_url = urlparse(url)
-        filename = os.path.basename(parsed_url.path)
-        file_extension = os.path.splitext(filename)[1]
-        audio_extensions = ['.wav', '.mp3', '.flac', '.aac', '.ogg', '.m4a']
-        if file_extension in audio_extensions:
-            response = requests.get(url, stream=True)
-            if response.status_code == 200:
-                file = response.content
-                filepath = os.path.join('/tmp', filename)
-                with open(filepath, 'wb') as f:
-                    f.write(file)
-                file = type('File', (object,), {'filename': filename})
-            else:
-                return jsonify({"error": "Unable to download file from provided URL"}), 400
-        elif 'youtube.com' in url or 'youtu.be' in url:
-            audio_data = rip_youtube(url)
-            filename = 'youtube_audio.mp4'
-            filepath = os.path.join('/tmp', filename)
-            with open(filepath, 'wb') as f:
-                f.write(audio_data.getvalue())
-            file = type('File', (object,), {'filename': filename})
-        else:
-            return jsonify({"error": "Provided URL does not point to a valid audio file or YouTube video"}), 400
-    if file and file.filename != '':
-        if not allowed_file(file.filename):
-            return jsonify({"error": "File type not permitted"}), 400
-        filename = secure_filename(file.filename)
-        filepath = os.path.join('/tmp', filename)
-        if 'file' in request.files:
-            file.save(filepath)
-
-        if 'quickTranscribe' in request.form:
-            try:
-                transcript = quick_transcribe(audio_file=filepath)
-                return jsonify({"transcript": transcript, "src": filename}), 200
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-        else:
-            diarization = request.form.get('diarization', True)
-            min_speakers = request.form.get('minSpeakers', 1)
-            max_speakers = request.form.get('maxSpeakers', 3)
-            file_name = request.form.get('url', filename)
-            transcript, suggested_speakers = create_transcript(audio_file=filepath, diarization=diarization, min_speakers=int(min_speakers), max_speakers=int(max_speakers))
-            title, lite_summary, summary = create_title_and_summary(text=transcript)
-
-            return jsonify({"title": title, "lite_summary": lite_summary, "summary": summary, "transcript": transcript, "suggested_speakers": suggested_speakers, "src": file_name}), 200
-    else:
-        return jsonify({"error": "No file or URL provided"}), 400
-
-# Setup embedding engine
-import asyncio
-from infinity_emb import AsyncEmbeddingEngine
-
-from pydantic import BaseModel, Field
-from typing import List, Optional, Union
-
-class Embedding(BaseModel):
-    object: str
-    embedding: List[float]
-    index: int
-
-
-class Usage(BaseModel):
-    prompt_tokens: int
-    total_tokens: int
-
-
-class CreateEmbeddingResponse(BaseModel):
-    object: str
-    data: List[Embedding]
-    model: str
-    usage: Usage
-
-# prevents error
-    # ERROR: Task was destroyed but it is pending!                      base_events.py:1771
-        #  task: <Task pending name='Task-31' coro=<BatchHandler._delayed_warmup() done, defined at                             
-        #  /home/josh/miniconda3/envs/thecrew/lib/python3.11/site-packages/infinity_emb/inference/batch_hand                    
-        #  ler.py:364> wait_for=<Future pending cb=[Task.task_wakeup()]>>  
-    # but makes the function 4x as slow. Error doesn't seem to affect anything.
-# def embed_sync(sentences):
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-    
-#     async def embed():
-#         async with engine:
-#             return await engine.embed(sentences=sentences)
-
-#     result = loop.run_until_complete(embed())
-#     loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(loop)))
-#     loop.close()
-#     return result
-
-# @TODO: Look into removing from memory when not in use, there is a stop and start method
-MODEL_NAME = "BAAI/bge-large-en-v1.5"
-engine = AsyncEmbeddingEngine(model_name_or_path = MODEL_NAME, engine="torch")
-
-def embed_sync(sentences):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    async def embed():
-        async with engine:
-            return await engine.embed(sentences=sentences)
-
-    return loop.run_until_complete(embed())
-
-
-@app.route("/v1/embeddings", methods=['POST'])
-def embeddings():
-    data = request.json
-    try:
-        sentences = data["input"]
-    except KeyError:
-        return jsonify(error="Missing 'input' key in JSON payload"), 400
-        
-    try:
-        embeddings, usage = embed_sync(sentences)
-        from uuid import uuid4
-        import time
-        
-        embedding_objects = []
-        for i, embedding in enumerate(embeddings):
-            embedding_objects.append(
-                Embedding(object="embedding", embedding=embedding.tolist(), index=i)
-            )
-            
-        usage_object = Usage(prompt_tokens=0, total_tokens=usage)
-
-        response = CreateEmbeddingResponse(
-            object="embedding",
-            data=embedding_objects,
-            model=MODEL_NAME,
-            usage=usage_object,
-            id=f"infinity-{uuid4()}",
-            created=int(time.time())
-        )
-        
-        return response.dict(), 200
-    except Exception as ex:
-        print(ex)
-        return jsonify(error=f"InternalServerError: {str(ex)}"), 500
-   
-@app.route("/v1/agent", methods=["POST"])
-def agent():
-    try:
-        agent_payload = request.get_json()
-
-        print("Agent Payload:", agent_payload)
-
-        user_message = agent_payload.get("userMessage")
-        user_name = agent_payload.get("userName")
-        user_location = agent_payload.get("userLocation")
-        custom_prompt = agent_payload.get("customPrompt")
-        chat_history = agent_payload.get("chatHistory")
-        current_document = agent_payload.get("currentDocument")
-
-        formatted_payload = f"I'm a tab from the custom agent endpoint! 👍\
-            \nUser Message: {user_message}\
-            \nUser Name: {user_name}\
-            \nUser Location: {user_location}\
-            \nCustom Prompt: {custom_prompt}\
-            \nChat History: {chat_history}\
-            \nCurrent Document: {current_document}\
-            "
-
-        socketio.emit(
-            "create-tab", {"title": "Hello Tab!", "content": formatted_payload}
-        )
-        socketio.emit(
-            "info-toast", {"info": "We are sending a toast from the server side!"}
-        )
-
-        return jsonify({"response": "Hello from the server side..."}), 200
-
-    except Exception as e:
-        print(e)
-        return jsonify
-
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5050, allow_unsafe_werkzeug=True)
